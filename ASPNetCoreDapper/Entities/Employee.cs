@@ -1,4 +1,4 @@
-﻿namespace appsettings.json.Entities
+﻿namespace ASPNetCoreDapper.Entities
 {
     public class Employee
     {
@@ -7,6 +7,5 @@
         public int Age { get; set; }
         public string Position { get; set; }
         public int CompanyId { get; set; }
-
     }
 }

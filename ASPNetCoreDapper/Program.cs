@@ -1,4 +1,6 @@
-using ASPNetCoreDapper.Context; 
+using ASPNetCoreDapper.Context;
+using ASPNetCoreDapper.Contracts;
+using ASPNetCoreDapper.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +10,7 @@ builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
 var app = builder.Build();
 
