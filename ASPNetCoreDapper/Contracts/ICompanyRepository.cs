@@ -10,7 +10,6 @@ namespace ASPNetCoreDapper.Contracts
         Task<Company> CreateCompany(CompanyForCreationDto company);
         Task UpdateCompany(int id, CompanyForUpdateDto company);
         Task DeleteCompany(int id);
-        Task<Company> GetCompanyByEmployeeId(int id);
         Task<Company> GetCompanyEmployeesMultipleResults(int id);
         Task<List<Company>> GetCompaniesEmployeesMultipleMapping();
 

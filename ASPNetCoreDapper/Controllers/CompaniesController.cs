@@ -82,22 +82,7 @@ namespace ASPNetCoreDapper.Controllers
             }
         }
 
-        [HttpGet("ByEmployeeId/{id}")]
-        public async Task<IActionResult> GetCompanyForEmployee(int id)
-        {
-            try
-            {
-                var company = await _companyRepo.GetCompanyByEmployeeId(id);
-                if (company == null)
-                    return NotFound();
-
-                return Ok(company);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
+       
 
         [HttpGet("{id}/MultipleResult")]
         public async Task<IActionResult> GetCompanyEmployeesMultipleResult(int id)

@@ -33,7 +33,7 @@ namespace ASPNetCoreDapper.Repository
             using (var connection = _context.CreateConnection())
             {
                 var company = await connection.QuerySingleOrDefaultAsync<Company>(query, new { id });
-                return company;
+                return company ?? throw new KeyNotFoundException($"Company with ID {id} not found");
             }
         }
 
@@ -82,27 +82,32 @@ namespace ASPNetCoreDapper.Repository
 
         public async Task DeleteCompany(int id)
         {
-            var query = "DELETE FROM Companies WHERE Id = @Id";
             using (var connection = _context.CreateConnection())
             {
-                await connection.ExecuteAsync(query, new { id });
+                connection.Open();
+                using (var transaction = connection.BeginTransaction())
+                {
+                    await connection.ExecuteAsync("DELETE FROM Employees WHERE CompanyId = @Id", new { id }, transaction);
+                    await connection.ExecuteAsync("DELETE FROM Companies WHERE Id = @Id", new { id }, transaction);
+                    transaction.Commit();
+                }
             }
         }
 
-        public async Task<Company> GetCompanyByEmployeeId(int id)
-        {
-            var procedureName = "ShowCompanyForProvidedEmployeeId";
-            var parameters = new DynamicParameters();
-            parameters.Add("Id", id, DbType.Int32, ParameterDirection.Input);
+        //public async Task<Company> GetCompanyByEmployeeId(int id)
+        //{
+        //    var procedureName = "ShowCompanyForProvidedEmployeeId";
+        //    var parameters = new DynamicParameters();
+        //    parameters.Add("Id", id, DbType.Int32, ParameterDirection.Input);
 
-            using (var connection = _context.CreateConnection())
-            {
-                var company = await connection.QueryFirstOrDefaultAsync<Company>
-                    (procedureName, parameters, commandType: CommandType.StoredProcedure);
+        //    using (var connection = _context.CreateConnection())
+        //    {
+        //        var company = await connection.QueryFirstOrDefaultAsync<Company>
+        //            (procedureName, parameters, commandType: CommandType.StoredProcedure);
 
-                return company;
-            }
-        }
+        //        return company;
+        //    }
+        //}
 
         public async Task<Company> GetCompanyEmployeesMultipleResults(int id)
         {
@@ -115,36 +120,35 @@ namespace ASPNetCoreDapper.Repository
                 var company = await multi.ReadSingleOrDefaultAsync<Company>();
                 if (company != null)
                     company.Employees = (await multi.ReadAsync<Employee>()).ToList();
-
-                return company;
+                return company ?? throw new KeyNotFoundException($"Company with ID {id} not found");
             }
         }
 
-        public async Task<List<Company>> GetCompaniesEmployeesMultipleMapping()
-        {
-            var query = "SELECT * FROM Companies c JOIN Employees e ON c.Id = e.CompanyId";
+        //public async Task<List<Company>> GetCompaniesEmployeesMultipleMapping()
+        //{
+        //    var query = "SELECT * FROM Companies c JOIN Employees e ON c.Id = e.CompanyId";
 
-            using (var connection = _context.CreateConnection())
-            {
-                var companyDict = new Dictionary<int, Company>();
+        //    using (var connection = _context.CreateConnection())
+        //    {
+        //        var companyDict = new Dictionary<int, Company>();
 
-                var companies = await connection.QueryAsync<Company, Employee, Company>(
-                    query, (company, employee) =>
-                    {
-                        if (!companyDict.TryGetValue(company.Id, out var currentCompany))
-                        {
-                            currentCompany = company;
-                            companyDict.Add(currentCompany.Id, currentCompany);
-                        }
+        //        var companies = await connection.QueryAsync<Company, Employee, Company>(
+        //            query, (company, employee) =>
+        //            {
+        //                if (!companyDict.TryGetValue(company.Id, out var currentCompany))
+        //                {
+        //                    currentCompany = company;
+        //                    companyDict.Add(currentCompany.Id, currentCompany);
+        //                }
 
-                        currentCompany.Employees.Add(employee);
-                        return currentCompany;
-                    }
-                );
+        //                currentCompany.Employees.Add(employee);
+        //                return currentCompany;
+        //            }
+        //        );
 
-                return companies.Distinct().ToList();
-            }
-        }
+        //        return companies.Distinct().ToList();
+        //    }
+        //}
 
         public async Task CreateMultipleCompanies(List<CompanyForCreationDto> companies)
         {
@@ -171,6 +175,10 @@ namespace ASPNetCoreDapper.Repository
             }
         }
 
+        Task<List<Company>> ICompanyRepository.GetCompaniesEmployeesMultipleMapping()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 
