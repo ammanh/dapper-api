@@ -82,7 +82,19 @@ namespace ASPNetCoreDapper.Controllers
             }
         }
 
-       
+        [HttpPost]
+        public async Task<IActionResult> CreateCompany(CompanyForCreationDto company)
+        {
+            try
+            {
+                var createdCompany = await _companyRepo.CreateCompany(company);
+                return CreatedAtRoute("CompanyById", new { id = createdCompany.Id }, createdCompany);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
 
         [HttpGet("{id}/MultipleResult")]
         public async Task<IActionResult> GetCompanyEmployeesMultipleResult(int id)
@@ -108,6 +120,38 @@ namespace ASPNetCoreDapper.Controllers
             {
                 var company = await _companyRepo.GetCompaniesEmployeesMultipleMapping();
                 return Ok(company);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> PatchCompany(int id, CompanyForPatchDto company)
+        {
+            try
+            {
+                var dbCompany = await _companyRepo.GetCompany(id);
+                if (dbCompany == null)
+                    return NotFound();
+
+                // Only update properties that are provided in the request
+                if (company.Name != null)
+                    dbCompany.Name = company.Name;
+                if (company.Address != null)
+                    dbCompany.Address = company.Address;
+                if (company.Country != null)
+                    dbCompany.Country = company.Country;
+
+                await _companyRepo.UpdateCompany(id, new CompanyForUpdateDto
+                {
+                    Name = dbCompany.Name,
+                    Address = dbCompany.Address,
+                    Country = dbCompany.Country
+                });
+
+                return NoContent();
             }
             catch (Exception ex)
             {
