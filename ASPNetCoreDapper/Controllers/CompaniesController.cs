@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ASPNetCoreDapper.Contracts;
 using ASPNetCoreDapper.Dto;
+using ASPNetCoreDapper.Services;
 
 namespace ASPNetCoreDapper.Controllers
 {
@@ -8,11 +8,11 @@ namespace ASPNetCoreDapper.Controllers
     [ApiController]
     public class CompaniesController : ControllerBase
     {
-        private readonly ICompanyRepository _companyRepo;
+        private readonly ICompanyService _companyService;
 
-        public CompaniesController(ICompanyRepository companyRepo)
+        public CompaniesController(ICompanyService companyService)
         {
-            _companyRepo = companyRepo;
+            _companyService = companyService;
         }
 
         [HttpGet]
@@ -20,7 +20,7 @@ namespace ASPNetCoreDapper.Controllers
         {
             try
             {
-                var companies = await _companyRepo.GetCompanies();
+                var companies = await _companyService.GetAllCompanies();
                 return Ok(companies);
             }
             catch (Exception ex)
@@ -34,47 +34,12 @@ namespace ASPNetCoreDapper.Controllers
         {
             try
             {
-                var company = await _companyRepo.GetCompany(id);
-                if (company == null)
-                    return NotFound();
-
+                var company = await _companyService.GetCompanyById(id);
                 return Ok(company);
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException ex)
             {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCompany(int id, CompanyForUpdateDto company)
-        {
-            try
-            {
-                var dbCompany = await _companyRepo.GetCompany(id);
-                if (dbCompany == null)
-                    return NotFound();
-
-                await _companyRepo.UpdateCompany(id, company);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCompany(int id)
-        {
-            try
-            {
-                var dbCompany = await _companyRepo.GetCompany(id);
-                if (dbCompany == null)
-                    return NotFound();
-
-                await _companyRepo.DeleteCompany(id);
-                return NoContent();
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {
@@ -87,25 +52,12 @@ namespace ASPNetCoreDapper.Controllers
         {
             try
             {
-                var createdCompany = await _companyRepo.CreateCompany(company);
+                var createdCompany = await _companyService.CreateCompany(company);
                 return CreatedAtRoute("CompanyById", new { id = createdCompany.Id }, createdCompany);
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        [HttpGet("{id}/MultipleResult")]
-        public async Task<IActionResult> GetCompanyEmployeesMultipleResult(int id)
-        {
-            try
-            {
-                var company = await _companyRepo.GetCompanyEmployeesMultipleResults(id);
-                if (company == null)
-                    return NotFound();
-
-                return Ok(company);
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
@@ -113,13 +65,21 @@ namespace ASPNetCoreDapper.Controllers
             }
         }
 
-        [HttpGet("MultipleMapping")]
-        public async Task<IActionResult> GetCompaniesEmployeesMultipleMapping()
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateCompany(int id, CompanyForUpdateDto company)
         {
             try
             {
-                var company = await _companyRepo.GetCompaniesEmployeesMultipleMapping();
-                return Ok(company);
+                await _companyService.UpdateCompany(id, company);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
@@ -132,26 +92,62 @@ namespace ASPNetCoreDapper.Controllers
         {
             try
             {
-                var dbCompany = await _companyRepo.GetCompany(id);
-                if (dbCompany == null)
-                    return NotFound();
-
-                // Only update properties that are provided in the request
-                if (company.Name != null)
-                    dbCompany.Name = company.Name;
-                if (company.Address != null)
-                    dbCompany.Address = company.Address;
-                if (company.Country != null)
-                    dbCompany.Country = company.Country;
-
-                await _companyRepo.UpdateCompany(id, new CompanyForUpdateDto
-                {
-                    Name = dbCompany.Name,
-                    Address = dbCompany.Address,
-                    Country = dbCompany.Country
-                });
-
+                await _companyService.PatchCompany(id, company);
                 return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCompany(int id)
+        {
+            try
+            {
+                await _companyService.DeleteCompany(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("{id}/MultipleResult")]
+        public async Task<IActionResult> GetCompanyEmployeesMultipleResult(int id)
+        {
+            try
+            {
+                var company = await _companyService.GetCompanyWithEmployees(id);
+                return Ok(company);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("MultipleMapping")]
+        public async Task<IActionResult> GetCompaniesEmployeesMultipleMapping()
+        {
+            try
+            {
+                var companies = await _companyService.GetCompaniesWithEmployees();
+                return Ok(companies);
             }
             catch (Exception ex)
             {
