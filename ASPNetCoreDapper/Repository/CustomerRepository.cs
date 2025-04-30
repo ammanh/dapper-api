@@ -1,7 +1,9 @@
-﻿using ASPNetCoreDapper.Contracts;
+﻿using System.Data;
+using Dapper;
+using ASPNetCoreDapper.Contracts;
 using ASPNetCoreDapper.Context;
 using ASPNetCoreDapper.Entities;
-using Dapper;
+using ASPNetCoreDapper.Dto;
 
 namespace ASPNetCoreDapper.Repository
 {
@@ -16,21 +18,70 @@ namespace ASPNetCoreDapper.Repository
 
         public async Task<IEnumerable<Customer>> GetCustomers()
         {
-            var query = "SELECT * FROM Customers";
+            const string sql = "SELECT * FROM Customers";
             using (var connection = _context.CreateConnection())
             {
-                var customers = await connection.QueryAsync<Customer>(query);
-                return customers.ToList();
+                return await connection.QueryAsync<Customer>(sql);
             }
         }
 
         public async Task<Customer> GetCustomer(int id)
         {
-            var query = "SELECT * FROM Customers WHERE Id = @Id";
+            const string sql = "SELECT * FROM Customers WHERE Id = @Id";
             using (var connection = _context.CreateConnection())
             {
-                var customer = await connection.QuerySingleOrDefaultAsync<Customer>(query, new { id });
-                return customer;
+                return await connection.QuerySingleOrDefaultAsync<Customer>(sql, new { Id = id });
+            }
+        }
+
+        public async Task<Customer> CreateCustomer(CustomerForCreationDto customerDto)
+        {
+            const string sql = @"
+                INSERT INTO Customers (Name, Email, Phone)
+                VALUES (@Name, @Email, @Phone);
+                SELECT CAST(SCOPE_IDENTITY() as int)";
+
+            using (var connection = _context.CreateConnection())
+            {
+                var id = await connection.QuerySingleAsync<int>(sql, customerDto);
+                
+                return new Customer
+                {
+                    Id = id,
+                    Name = customerDto.Name,
+                    Email = customerDto.Email,
+                    Phone = customerDto.Phone
+                };
+            }
+        }
+
+        public async Task UpdateCustomer(int id, CustomerForUpdateDto customerDto)
+        {
+            const string sql = @"
+                UPDATE Customers
+                SET Name = @Name,
+                    Email = @Email,
+                    Phone = @Phone
+                WHERE Id = @Id";
+
+            using (var connection = _context.CreateConnection())
+            {
+                await connection.ExecuteAsync(sql, new
+                {
+                    Id = id,
+                    customerDto.Name,
+                    customerDto.Email,
+                    customerDto.Phone
+                });
+            }
+        }
+
+        public async Task DeleteCustomer(int id)
+        {
+            const string sql = "DELETE FROM Customers WHERE Id = @Id";
+            using (var connection = _context.CreateConnection())
+            {
+                await connection.ExecuteAsync(sql, new { Id = id });
             }
         }
     }

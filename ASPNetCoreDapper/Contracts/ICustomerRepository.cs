@@ -1,4 +1,5 @@
-﻿using ASPNetCoreDapper.Entities;
+﻿using ASPNetCoreDapper.Dto;
+using ASPNetCoreDapper.Entities;
 
 namespace ASPNetCoreDapper.Contracts
 {
@@ -6,5 +7,8 @@ namespace ASPNetCoreDapper.Contracts
     {
         Task<IEnumerable<Customer>> GetCustomers();
         Task<Customer> GetCustomer(int id);
+        Task<Customer> CreateCustomer(CustomerForCreationDto customer);
+        Task UpdateCustomer(int id, CustomerForUpdateDto customer);
+        Task DeleteCustomer(int id);
     }
 }
