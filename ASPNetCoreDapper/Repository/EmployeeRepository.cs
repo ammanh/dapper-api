@@ -1,10 +1,11 @@
-﻿using ASPNetCoreDapper.Context;
+﻿using ASPNetCoreDapper.Contracts;
+using ASPNetCoreDapper.Context;
+using ASPNetCoreDapper.Dto;
 using ASPNetCoreDapper.Entities;
 using Dapper;
-using appsettings.json.Contracts;
 using System.Data;
 
-namespace appsettings.json.Repository
+namespace ASPNetCoreDapper.Repository
 {
     public class EmployeeRepository : IEmployeeRepository
     {
@@ -13,6 +14,81 @@ namespace appsettings.json.Repository
         public EmployeeRepository(DapperContext context)
         {
             _context = context;
+        }
+
+        public async Task<IEnumerable<Employee>> GetEmployees()
+        {
+            var query = "SELECT * FROM Employees";
+            using (var connection = _context.CreateConnection())
+            {
+                var employees = await connection.QueryAsync<Employee>(query);
+                return employees.ToList();
+            }
+        }
+
+        public async Task<Employee> GetEmployee(int id)
+        {
+            var query = "SELECT * FROM Employees WHERE Id = @Id";
+            using (var connection = _context.CreateConnection())
+            {
+                var employee = await connection.QuerySingleOrDefaultAsync<Employee>(query, new { id });
+                return employee;
+            }
+        }
+
+        public async Task<Employee> CreateEmployee(EmployeeForCreationDto employee)
+        {
+            var query = @"INSERT INTO Employees (Name, Age, Position, CompanyId)
+                        VALUES (@Name, @Age, @Position, @CompanyId);
+                        SELECT CAST(SCOPE_IDENTITY() as int)";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("Name", employee.Name, DbType.String);
+            parameters.Add("Age", employee.Age, DbType.Int32);
+            parameters.Add("Position", employee.Position, DbType.String);
+            parameters.Add("CompanyId", employee.CompanyId, DbType.Int32);
+
+            using (var connection = _context.CreateConnection())
+            {
+                var id = await connection.QuerySingleAsync<int>(query, parameters);
+
+                var createdEmployee = new Employee
+                {
+                    Id = id,
+                    Name = employee.Name,
+                    Age = employee.Age,
+                    Position = employee.Position,
+                    CompanyId = employee.CompanyId
+                };
+
+                return createdEmployee;
+            }
+        }
+
+        public async Task UpdateEmployee(int id, EmployeeForUpdateDto employee)
+        {
+            var query = "UPDATE Employees SET Name = @Name, Age = @Age, Position = @Position, CompanyId = @CompanyId WHERE Id = @Id";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("Id", id, DbType.Int32);
+            parameters.Add("Name", employee.Name, DbType.String);
+            parameters.Add("Age", employee.Age, DbType.Int32);
+            parameters.Add("Position", employee.Position, DbType.String);
+            parameters.Add("CompanyId", employee.CompanyId, DbType.Int32);
+
+            using (var connection = _context.CreateConnection())
+            {
+                await connection.ExecuteAsync(query, parameters);
+            }
+        }
+
+        public async Task DeleteEmployee(int id)
+        {
+            var query = "DELETE FROM Employees WHERE Id = @Id";
+            using (var connection = _context.CreateConnection())
+            {
+                await connection.ExecuteAsync(query, new { id });
+            }
         }
 
         public async Task<Company> GetCompanyByEmployeeId(int id)
