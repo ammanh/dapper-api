@@ -18,21 +18,55 @@ namespace ASPNetCoreDapper.Repository
 
         public async Task<IEnumerable<Employee>> GetEmployees()
         {
-            var query = "SELECT * FROM Employees";
+            var query = @"SELECT e.*, c.* 
+                         FROM Employees e 
+                         LEFT JOIN Companies c ON e.CompanyId = c.Id";
             using (var connection = _context.CreateConnection())
             {
-                var employees = await connection.QueryAsync<Employee>(query);
-                return employees.ToList();
+                var employeeDict = new Dictionary<int, Employee>();
+                var employees = await connection.QueryAsync<Employee, Company, Employee>(
+                    query,
+                    (employee, company) =>
+                    {
+                        if (!employeeDict.TryGetValue(employee.Id, out var currentEmployee))
+                        {
+                            currentEmployee = employee;
+                            employeeDict.Add(currentEmployee.Id, currentEmployee);
+                        }
+                        currentEmployee.Company = company;
+                        return currentEmployee;
+                    },
+                    splitOn: "Id"
+                );
+                return employeeDict.Values;
             }
         }
 
         public async Task<Employee> GetEmployee(int id)
         {
-            var query = "SELECT * FROM Employees WHERE Id = @Id";
+            var query = @"SELECT e.*, c.* 
+                         FROM Employees e 
+                         LEFT JOIN Companies c ON e.CompanyId = c.Id 
+                         WHERE e.Id = @Id";
             using (var connection = _context.CreateConnection())
             {
-                var employee = await connection.QuerySingleOrDefaultAsync<Employee>(query, new { id });
-                return employee;
+                var employeeDict = new Dictionary<int, Employee>();
+                var employees = await connection.QueryAsync<Employee, Company, Employee>(
+                    query,
+                    (employee, company) =>
+                    {
+                        if (!employeeDict.TryGetValue(employee.Id, out var currentEmployee))
+                        {
+                            currentEmployee = employee;
+                            employeeDict.Add(currentEmployee.Id, currentEmployee);
+                        }
+                        currentEmployee.Company = company;
+                        return currentEmployee;
+                    },
+                    new { id },
+                    splitOn: "Id"
+                );
+                return employeeDict.Values.FirstOrDefault();
             }
         }
 
