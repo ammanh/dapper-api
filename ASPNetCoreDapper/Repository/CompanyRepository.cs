@@ -120,35 +120,31 @@ namespace ASPNetCoreDapper.Repository
                 var company = await multi.ReadSingleOrDefaultAsync<Company>();
                 if (company != null)
                     company.Employees = (await multi.ReadAsync<Employee>()).ToList();
-                return company ?? throw new KeyNotFoundException($"Company with ID {id} not found");
+                return company; /*?? throw new KeyNotFoundException($"Company with ID {id} not found");*/
             }
         }
 
-        //public async Task<List<Company>> GetCompaniesEmployeesMultipleMapping()
-        //{
-        //    var query = "SELECT * FROM Companies c JOIN Employees e ON c.Id = e.CompanyId";
-
-        //    using (var connection = _context.CreateConnection())
-        //    {
-        //        var companyDict = new Dictionary<int, Company>();
-
-        //        var companies = await connection.QueryAsync<Company, Employee, Company>(
-        //            query, (company, employee) =>
-        //            {
-        //                if (!companyDict.TryGetValue(company.Id, out var currentCompany))
-        //                {
-        //                    currentCompany = company;
-        //                    companyDict.Add(currentCompany.Id, currentCompany);
-        //                }
-
-        //                currentCompany.Employees.Add(employee);
-        //                return currentCompany;
-        //            }
-        //        );
-
-        //        return companies.Distinct().ToList();
-        //    }
-        //}
+        public async Task<List<Company>> GetCompaniesEmployeesMultipleMapping()
+        {
+            var query = "SELECT * FROM Companies c JOIN Employees e ON c.Id = e.CompanyId";
+            using (var connection = _context.CreateConnection())
+            {
+                var companyDict = new Dictionary<int, Company>();
+                var companies = await connection.QueryAsync<Company, Employee, Company>(
+                    query, (company, employee) =>
+                    {
+                        if (!companyDict.TryGetValue(company.Id, out var currentCompany))
+                        {
+                            currentCompany = company;
+                            companyDict.Add(currentCompany.Id, currentCompany);
+                        }
+                        currentCompany.Employees.Add(employee);
+                        return currentCompany;
+                    }
+                );
+                return companies.Distinct().ToList();
+            }
+        }
 
         public async Task CreateMultipleCompanies(List<CompanyForCreationDto> companies)
         {
@@ -173,11 +169,6 @@ namespace ASPNetCoreDapper.Repository
                     transaction.Commit();
                 }
             }
-        }
-
-        Task<List<Company>> ICompanyRepository.GetCompaniesEmployeesMultipleMapping()
-        {
-            throw new NotImplementedException();
         }
     }
 }
