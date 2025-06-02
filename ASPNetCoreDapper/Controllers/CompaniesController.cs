@@ -4,7 +4,7 @@ using ASPNetCoreDapper.Services;
 
 namespace ASPNetCoreDapper.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/companies")]
     [ApiController]
     public class CompaniesController : ControllerBase
     {
@@ -29,7 +29,7 @@ namespace ASPNetCoreDapper.Controllers
             }
         }
 
-        [HttpGet("{id}", Name = "CompanyById")]
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetCompany(int id)
         {
             try
@@ -53,7 +53,7 @@ namespace ASPNetCoreDapper.Controllers
             try
             {
                 var createdCompany = await _companyService.CreateCompany(company);
-                return CreatedAtRoute("CompanyById", new { id = createdCompany.Id }, createdCompany);
+                return CreatedAtAction(nameof(GetCompany), new { id = createdCompany.Id }, createdCompany);
             }
             catch (ArgumentException ex)
             {
@@ -123,8 +123,8 @@ namespace ASPNetCoreDapper.Controllers
             }
         }
 
-        [HttpGet("{id}/MultipleResult")]
-        public async Task<IActionResult> GetCompanyEmployeesMultipleResult(int id)
+        [HttpGet("{id}/employees")]
+        public async Task<IActionResult> GetCompanyEmployees(int id)
         {
             try
             {
@@ -141,8 +141,8 @@ namespace ASPNetCoreDapper.Controllers
             }
         }
 
-        [HttpGet("MultipleMapping")]
-        public async Task<IActionResult> GetCompaniesEmployeesMultipleMapping()
+        [HttpGet("employees")]
+        public async Task<IActionResult> GetAllCompaniesWithEmployees()
         {
             try
             {
